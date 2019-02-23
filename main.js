@@ -394,7 +394,7 @@ Ball.prototype.draw = function () {
 Paddle
 */
 function Paddle(game, spritesheet, scale) {
-    this.animation = new Animation(AM.getAsset("./img/paddle.png"), 485, 128, 3, 0.05, 3, 1, scale);
+    this.animation = new Animation(AM.getAsset("./img/paddle.png"), 485, 128, 3, 0.1, 3, 1, scale);
 	
     this.speed = 800;
     this.ctx = game.ctx;
