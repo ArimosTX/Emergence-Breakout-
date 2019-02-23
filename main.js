@@ -286,6 +286,7 @@ function Ball(game, spritesheet, x, y, scale) {
 	var randomNegative = Math.random() < 0.5 ? -1 : 1;
     this.xMultiplier = -1 * randomNegative;
     this.yMultiplier = -1;
+	this.xRandom = Math.floor(Math.random() * 20 + 50) / 100;
 	this.x = x;
 	this.y = y;
 	this.lastX = x;
@@ -308,7 +309,7 @@ Ball.prototype.update = function () {
 	this.lastX = this.x;
 	this.lastY = this.y;
 	
-    this.x += this.game.clockTick * this.speed * this.xMultiplier * .75;
+    this.x += this.game.clockTick * this.speed * this.xMultiplier * this.xRandom;
     this.y += this.game.clockTick * this.speed * this.yMultiplier;
 	
 	this.boundingbox = new BoundingBox(this.x, this.y, this.width, this.height);
@@ -320,7 +321,7 @@ Ball.prototype.update = function () {
 		// collide with border         
 		if (this.boundingbox.collide(border.boundingbox)) {
 			
-			// collide with right side or left side
+			// collide with right side
 			if ( this.lastboundingbox.left > border.boundingbox.right) {
 				this.xMultiplier = 1;		
 				this.x = this.lastX;
@@ -349,24 +350,25 @@ Ball.prototype.update = function () {
 		// collide with border         
 		if (this.boundingbox.collide(brick.boundingbox)) {
 			
-			// collide with right side or left side
-			if ( (this.lastboundingbox.left > brick.boundingbox.right) || (this.lastboundingbox.right < brick.boundingbox.left) ) {
-				this.xMultiplier *= -1;		
-				this.x = this.lastX;
-			}
-			
-			// collide with bottom
-			else if ( (this.lastboundingbox.top > brick.boundingbox.bottom) || (this.lastboundingbox.bot < brick.boundingbox.top)) {
-				this.y = this.lastY;
+			// collide with bottom or top
+			if ( (this.lastboundingbox.top > brick.boundingbox.bottom) || (this.lastboundingbox.bot < brick.boundingbox.top)) {
 				this.yMultiplier *= -1;		
+				this.boundingbox = this.lastboundingbox;
 			}
 			
+			// collide with right side or left side
+			else if ( (this.lastboundingbox.left > brick.boundingbox.right) || (this.lastboundingbox.right < brick.boundingbox.left) ) {
+				this.xMultiplier *= -1;		
+				this.boundingbox = this.lastboundingbox;
+			}
+
 			brick.hit = true;
+			i = this.game.bricks.length;
 		}
 	}
 	
 	// Check for offscreen
-	if (this.y > 800 || this.x < -50 || this.x > 800) {
+	if (this.y > 700 || this.x < -50 || this.x > 800) {
 		// remove ball
 		for( var i = 0; i < this.game.balls.length; i++){ 
 			if ( this.game.balls[i] === this) {
@@ -392,11 +394,11 @@ Ball.prototype.draw = function () {
 Paddle
 */
 function Paddle(game, spritesheet, scale) {
-    this.animation = new Animation(AM.getAsset("./img/paddle.png"), 485, 128, 3, 0.07, 3, 1, scale);
+    this.animation = new Animation(AM.getAsset("./img/paddle.png"), 485, 128, 3, 0.05, 3, 1, scale);
 	
-    this.speed = 700;
+    this.speed = 800;
     this.ctx = game.ctx;
-    this.xMultiplier = -1;
+    this.xMultiplier = 1;
     this.yMultiplier = 1;
 	this.x = 400;
 	this.y = 650;
@@ -425,12 +427,15 @@ Paddle.prototype.update = function () {
 		}
 	}
 	
+	var dist = this.center - this.target.center;
 	// Track Target Ball
-	if (this.center > this.target.center) {
-		this.x -= this.game.clockTick * this.speed;
-	} else if (this.center < this.target.center) {
-		this.x += this.game.clockTick * this.speed;
+	if (dist > 0) {
+		this.xMultiplier = -1;
+	} else {
+		this.xMultiplier = 1;
 	}
+	if (Math.abs(dist) > 15) this.x += this.game.clockTick * this.speed * this.xMultiplier;
+	
 	
 	this.boundingbox = new BoundingBox(this.x, this.y, this.width, this.height);
 	
@@ -439,7 +444,7 @@ Paddle.prototype.update = function () {
 		var ball = this.game.balls[i];
 		if (this.boundingbox.collide(ball.boundingbox) && ball.lastY < this.boundingbox.top) {
 			ball.y = ball.lastY;
-			ball.yMultiplier *= -1;
+			ball.yMultiplier = -1;
 			//ball.speed += 15;
 			this.bounceSound.play();
 		}
@@ -483,7 +488,7 @@ AM.downloadAll(function () {
 	gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.png"), -90, 0));
 	
 	// Border(game, spritesheet, sourceX, sourceY, x, y, numberOfXRepeats, numberOfYRepeats)
-	var border = new Border(gameEngine, AM.getAsset("./img/breakout_sprites.png"), 0, 40, 0, 0, 1, 22);
+	var border = new Border(gameEngine, AM.getAsset("./img/breakout_sprites.png"), 0, 40, 0, 0, 1, 20);
 	gameEngine.addEntity(border);
 	borders.push(border);
 	
@@ -491,7 +496,7 @@ AM.downloadAll(function () {
 	gameEngine.addEntity(border);
 	borders.push(border);
 	
-	border = new Border(gameEngine, AM.getAsset("./img/breakout_sprites.png"), 0, 40, 24*32, 0, 1, 22);
+	border = new Border(gameEngine, AM.getAsset("./img/breakout_sprites.png"), 0, 40, 24*32, 0, 1, 20);
 	gameEngine.addEntity(border);
 	borders.push(border);
 	
@@ -562,9 +567,9 @@ AM.downloadAll(function () {
 		gameEngine.addEntity(brick);
 		bricks.push(brick);
 	}	
-	
+
 	// Ball
-	var ball = new Ball(gameEngine, AM.getAsset("./img/asteroid.png"), 400, 400, 0.25);
+	var ball = new Ball(gameEngine, AM.getAsset("./img/asteroid.png"), Math.floor(Math.random() * 700) + 50, 600, 0.25);
 	gameEngine.addEntity(ball);
 	balls.push(ball);
 
