@@ -321,15 +321,21 @@ Ball.prototype.update = function () {
 		if (this.boundingbox.collide(border.boundingbox)) {
 			
 			// collide with right side or left side
-			if ( (this.lastboundingbox.left > border.boundingbox.right) || (this.lastboundingbox.right < border.boundingbox.left) ) {
-				this.xMultiplier *= -1;		
+			if ( this.lastboundingbox.left > border.boundingbox.right) {
+				this.xMultiplier = 1;		
+				this.x = this.lastX;
+			}
+			
+			// collide with left side
+			else if  (this.lastboundingbox.right < border.boundingbox.left) {
+				this.xMultiplier = -1;		
 				this.x = this.lastX;
 			}
 			
 			// collide with bottom
 			else if ( (this.lastboundingbox.top > border.boundingbox.bottom) ) {
 
-			this.yMultiplier *= -1;		
+			this.yMultiplier = 1;		
 			this.y = this.lastY;
 			}
 			
