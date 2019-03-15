@@ -1,6 +1,7 @@
 var AM = new AssetManager();
 const WINDOW_WIDTH = 800;
 const DEBUG = false;
+var gameEngine = new GameEngine();
 
 function Sound(src) {
     this.sound = document.createElement("audio");
@@ -9,9 +10,11 @@ function Sound(src) {
     this.sound.setAttribute("controls", "none");
     this.sound.style.display = "none";
     this.sound.volume = 0.7;
-    this.play = function(){
+    this.play = function() {
         this.sound.play();
     }
+	
+
     this.stop = function(){
         this.sound.pause();
     }
@@ -395,7 +398,7 @@ Paddle
 */
 function Paddle(game, spritesheet, scale) {
     this.animation = new Animation(AM.getAsset("./img/paddle.png"), 485, 128, 3, 0.1, 3, 1, scale);
-	
+	this.game = game;
     this.speed = 800;
     this.ctx = game.ctx;
     this.xMultiplier = 1;
@@ -436,9 +439,7 @@ Paddle.prototype.update = function () {
 	}
 	if (Math.abs(dist) > 15) this.x += this.game.clockTick * this.speed * this.xMultiplier;
 	
-	
 	this.boundingbox = new BoundingBox(this.x, this.y, this.width, this.height);
-	
 	// Check for Ball
 	for (var i = 0; i < this.game.balls.length; i++) {
 		var ball = this.game.balls[i];
@@ -460,6 +461,107 @@ Paddle.prototype.draw = function () {
     Entity.prototype.draw.call(this);
 }
 
+
+function saveState() {
+	var ballsData = [];
+	var bricksData = [];
+	
+	// save ball data
+	for (var i = 0; i < gameEngine.balls.length; i++) {
+		var ball = gameEngine.balls[i];
+		
+		var ballData = {
+			"xMultiplier": ball.xMultiplier,
+			"yMultiplier": ball.yMultiplier,
+			"xRandom": ball.xRandom,
+			"x": ball.x,
+			"y": ball.y,
+
+		}
+		ballsData.push(ballData);
+	}
+	
+	// save brick data
+	for (var i = 0; i < gameEngine.bricks.length; i++) {
+		var brick = gameEngine.bricks[i];
+		
+		var brickData = {
+			"x": brick.x,
+			"y": brick.y,
+			"sourceX": brick.sourceX,
+			"sourceY": brick.sourceY,
+		}	
+		bricksData.push(brickData);
+	}
+	
+	var saveData = {
+		"Paddle": {
+			"x": gameEngine.Paddle.x,
+			
+		},
+		"bricks": bricksData,
+		"balls": ballsData
+		
+	}
+	
+	return saveData;
+}
+
+function loadState(saveData) {
+	
+	// remove all entities
+	
+	//remove bricks
+	for (var i = gameEngine.bricks.length -1; i >= 0; i--) {
+		var brick = gameEngine.bricks[i];
+		brick.removeFromWorld = true;
+		gameEngine.bricks.splice(i, 1);
+	}
+	
+	// remove balls
+	for (var i = gameEngine.balls.length -1; i >= 0; i--) {
+		var ball = gameEngine.balls[i];
+		ball.removeFromWorld = true;
+		gameEngine.balls.splice(i, 1);
+	}
+	
+	// remove paddle
+	gameEngine.Paddle.removeFromWorld = true;
+	
+	
+	// add bricks
+	for (var i = 0; i < saveData.bricks.length; i ++) {
+		var brick = saveData.bricks[i];
+		
+		var newBrick = new Brick(gameEngine, AM.getAsset("./img/tiles.png"), brick.sourceX, brick.sourceY, brick.x, brick.y, 0.27);
+		gameEngine.addEntity(newBrick);
+		gameEngine.bricks.push(newBrick);
+	}
+	
+
+	
+	// add balls
+	for (var i = 0; i < saveData.balls.length; i ++) {
+		var ball = saveData.balls[i];
+		
+		var newBall = new Ball(gameEngine, AM.getAsset("./img/asteroid.png"), ball.x, ball.y, 0.25);
+		newBall.xMultiplier = ball.xMultiplier;
+		newBall.yMultiplier = ball.yMultiplier;
+		newBall.xRandom = ball.xRandom;
+		gameEngine.addEntity(newBall);
+		gameEngine.balls.push(newBall);
+	}
+	
+			// set Paddle
+	var paddle = new Paddle(gameEngine, AM.getAsset("./img/paddle.png"), 0.3);
+	paddle.x = saveData.Paddle.x;
+
+	gameEngine.addEntity(paddle);
+	gameEngine.Paddle = paddle;
+	
+}
+
+
 AM.queueDownload("./img/background.png");
 AM.queueDownload("./img/asteroid.png");
 AM.queueDownload("./img/breakout_sprites.png");
@@ -469,8 +571,6 @@ AM.queueDownload("./img/paddle.png");
 AM.downloadAll(function () {
     var canvas = document.getElementById("gameWorld");
     var ctx = canvas.getContext("2d");
-
-	var gameEngine = new GameEngine();
 	
     var bricks = [];
     gameEngine.bricks = bricks;
@@ -574,8 +674,13 @@ AM.downloadAll(function () {
 	balls.push(ball);
 
 	// Paddle
-	gameEngine.addEntity(new Paddle(gameEngine, AM.getAsset("./img/paddle.png"), 0.3));
+	//gameEngine.addEntity(new Paddle(gameEngine, AM.getAsset("./img/paddle.png"), 0.3));
 	
+	var paddle = new Paddle(gameEngine, AM.getAsset("./img/paddle.png"), 0.3);
+	gameEngine.addEntity(paddle);
+	gameEngine.Paddle = paddle;
+	
+
 
 	
 	// Key Listener
